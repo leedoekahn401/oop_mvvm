@@ -19,7 +19,6 @@ import java.util.List;
 
 public class DashBoardController {
 
-    // --- FXML UI Elements ---
     @FXML private VBox mainContent;
     @FXML private ImageView imgLogo;
     @FXML private Button informationButton;
@@ -32,13 +31,11 @@ public class DashBoardController {
     @FXML private Label lblTopDamage;
     @FXML private Label lblTopDamageCount;
 
-    // --- Dependencies ---
     private DashboardViewModel viewModel;
 
-    // Store the default dashboard content (the cards) so we can restore it later
+    // This list holds the "Cards" (Dashboard Widgets) so we can restore them later
     private ObservableList<Node> defaultDashboardContent;
 
-    // Constants
     private static final String CHART_FILE_PATH = "sentiment_score_chart.png";
     private static final String DAMAGE_PIE_PATH = "damage_type_pie.png";
     private static final String DAMAGE_BAR_PATH = "damage_type_bar.png";
@@ -48,14 +45,14 @@ public class DashBoardController {
         this.viewModel = new DashboardViewModel();
         loadLogo();
 
-        // 1. Capture the default FXML content (The 3 summary cards)
+        // 1. Capture the Default Content (The Dashboard Cards defined in FXML)
         if (mainContent != null) {
             this.defaultDashboardContent = FXCollections.observableArrayList(mainContent.getChildren());
         } else {
             this.defaultDashboardContent = FXCollections.emptyObservableList();
         }
 
-        // 2. BINDING (ViewModel -> View)
+        // 2. Bind UI Elements to ViewModel
         if (lblTotalPosts != null) lblTotalPosts.textProperty().bind(viewModel.totalPostsProperty());
         if (lblSentimentScore != null) lblSentimentScore.textProperty().bind(viewModel.sentimentScoreProperty());
         if (lblTopDamage != null) lblTopDamage.textProperty().bind(viewModel.topDamageProperty());
@@ -66,41 +63,39 @@ public class DashBoardController {
             lblSentimentLabel.styleProperty().bind(viewModel.sentimentStyleProperty());
         }
 
-        // 3. LISTENERS (Reacting to Events)
+        // 3. Listen for Logic Changes
 
-        // When status message changes (e.g., "Loading..."), show the loading screen
+        // Show loading text if status changes (but ignore empty strings)
         viewModel.statusMessageProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isEmpty()) {
                 showLoading(newVal);
             }
         });
 
-        // When a single chart is generated
+        // Show Chart when ViewModel has a file ready
         viewModel.chartFileProperty().addListener((obs, oldVal, newFile) -> {
             if (newFile != null) {
                 showChart("Sentiment Analysis Result", newFile);
             }
         });
 
-        // When multiple charts are generated
+        // Show Gallery when ViewModel has multiple files ready
         viewModel.galleryFilesProperty().addListener((obs, oldVal, fileList) -> {
             if (fileList != null && !fileList.isEmpty()) {
                 showChartGallery("Damage Analysis Report", fileList);
             }
         });
 
-        // 4. Setup Navigation Buttons
         setupNavigation();
-
-        // 5. Load Initial Data
         viewModel.loadDashboardStats();
     }
 
-    // --- VIEW LOGIC (Formerly in DashboardView.java) ---
+    // --- Navigation Logic ---
 
     private void showDefault() {
         // Restore the dashboard cards
-        mainContent.getChildren().setAll(defaultDashboardContent);
+        mainContent.getChildren().clear();
+        mainContent.getChildren().addAll(defaultDashboardContent);
     }
 
     private void showLoading(String message) {
@@ -116,10 +111,8 @@ public class DashBoardController {
     private void showChartGallery(String mainTitle, List<File> chartFiles) {
         mainContent.getChildren().clear();
         mainContent.getChildren().add(UIFactory.createSectionHeader(mainTitle));
-
         for (int i = 0; i < chartFiles.size(); i++) {
-            String subTitle = "Analysis Chart " + (i + 1);
-            VBox chartBox = UIFactory.createChartContainer(subTitle, chartFiles.get(i));
+            VBox chartBox = UIFactory.createChartContainer("Analysis Chart " + (i + 1), chartFiles.get(i));
             mainContent.getChildren().add(chartBox);
         }
     }
@@ -135,30 +128,31 @@ public class DashBoardController {
         }
     }
 
-    // --- NAVIGATION ---
-
     private void setupNavigation() {
         homeButton.setOnAction(e -> {
             updateActiveButton(homeButton);
             showDefault();
+            // Refresh stats to ensure numbers are up to date
             viewModel.loadDashboardStats();
         });
 
         sentimentButton.setOnAction(e -> {
             updateActiveButton(sentimentButton);
+            // Trigger generation in ViewModel
             viewModel.generateSentimentChart(CHART_FILE_PATH);
         });
 
         inventoryButton.setOnAction(e -> {
             updateActiveButton(inventoryButton);
+            // Trigger generation in ViewModel
             viewModel.generateDamageCharts(DAMAGE_PIE_PATH, DAMAGE_BAR_PATH);
         });
 
         informationButton.setOnAction(e -> {
             updateActiveButton(informationButton);
             List<Developer> devs = Arrays.asList(
-                    new Developer("Team Lead", "Backend & Analysis", "/project/app/humanelogistics/picture1.jpg"),
-                    new Developer("UI Designer", "Frontend & UX", "/project/app/humanelogistics/picture2.jpg")
+                    new Developer("Backend Lead", "Data & Analysis", "/project/app/humanelogistics/picture1.jpg"),
+                    new Developer("Frontend Lead", "UI & UX", "/project/app/humanelogistics/picture2.jpg")
             );
             showDevelopers(devs);
         });
@@ -166,7 +160,9 @@ public class DashBoardController {
 
     private void loadLogo() {
         try {
-            imgLogo.setImage(new Image(getClass().getResourceAsStream("/project/app/humanelogistics/logo.png")));
+            if (getClass().getResource("/project/app/humanelogistics/logo.png") != null) {
+                imgLogo.setImage(new Image(getClass().getResourceAsStream("/project/app/humanelogistics/logo.png")));
+            }
         } catch (Exception ignored) {}
     }
 

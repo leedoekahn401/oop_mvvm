@@ -29,7 +29,7 @@ public class AnalysisService {
         this.repoMap.put(label, repo);
     }
 
-    // --- COLLECTOR MANAGEMENT (Restored for DataIngestionApp) ---
+    // --- COLLECTOR MANAGEMENT ---
 
     public void registerCollectors(DataCollector... newCollectors) {
         for (DataCollector collector : newCollectors) {
@@ -41,7 +41,7 @@ public class AnalysisService {
         this.collectors.clear();
     }
 
-    // --- INGESTION LOGIC (Writes to DB) ---
+    // --- INGESTION LOGIC ---
 
     public void processNewData(String topic, String startDate, String endDate, boolean analyzeImmediately) {
         System.out.println("Starting Cycle for: " + topic + " [" + startDate + " to " + endDate + "]");
@@ -61,27 +61,51 @@ public class AnalysisService {
 
     public void processExistingData(String topic) {
         System.out.println("Scanning database for un-analyzed items: " + topic);
-        int count = 0;
+        int totalProcessed = 0;
 
-        for (MediaRepository repo : repoMap.values()) {
+        for (Map.Entry<String, MediaRepository> entry : repoMap.entrySet()) {
+            String repoName = entry.getKey();
+            MediaRepository repo = entry.getValue();
+
+            // Fetch items that need analysis
             List<Media> posts = repo.findByTopic(topic);
-            System.out.println("Found " + posts.size() + " items in repo. Checking for missing analysis...");
+            System.out.println("[" + repoName + "] Found " + posts.size() + " potential candidates.");
 
+            int batchCount = 0;
             for (Media item : posts) {
+                batchCount++;
+
+                // --- PRINT SPECIFIC DATA BEING WORKED ON ---
+                String preview = item.getContent() != null
+                        ? (item.getContent().length() > 60 ? item.getContent().substring(0, 60) + "..." : item.getContent())
+                        : "No Content";
+
+                // Print progress and content preview
+                System.out.printf("   Processing [%d/%d]: %s%n", batchCount, posts.size(), preview);
+
+                // Double check if analysis is actually needed
                 boolean needsAnalysis = (item.getSentiment() == 0.0) ||
                         (item.getDamageType() == null || item.getDamageType() == DamageCategory.UNKNOWN);
 
                 if (needsAnalysis) {
-                    analyzeItem(item); // Enrichment
-                    repo.updateAnalysis(item);
-                    count++;
+                    analyzeItem(item); // Call AI Models
+                    repo.updateAnalysis(item); // Save result to DB
+
+                    // Print the result of the analysis
+                    System.out.println("      -> Result: [Damage: " + item.getDamageType() + "] [Sentiment: " + String.format("%.2f", item.getSentiment()) + "]");
+                    totalProcessed++;
+                } else {
+                    System.out.println("      -> Skipped (Already Analyzed)");
                 }
+
+                // Optional: small delay to avoid hitting rate limits too fast if processing many items
+                try { Thread.sleep(200); } catch (InterruptedException e) {}
             }
         }
-        System.out.println("Batch Analysis Complete. Updated " + count + " items.");
+        System.out.println("Batch Analysis Complete. Successfully updated " + totalProcessed + " items.");
     }
 
-    // --- OPTIMIZED READ LOGIC (For DashboardViewModel) ---
+    // --- OPTIMIZED READ LOGIC ---
 
     public long getTotalPostCount(String topic) {
         long total = 0;
@@ -119,10 +143,9 @@ public class AnalysisService {
         Map<String, Map<LocalDate, Double>> allTrends = new HashMap<>();
 
         for (Map.Entry<String, MediaRepository> entry : repoMap.entrySet()) {
-            String sourceName = entry.getKey(); // "News", "Social Posts"
+            String sourceName = entry.getKey();
             Map<String, Map<LocalDate, Double>> repoTrends = entry.getValue().getDailySentimentTrends(topic);
 
-            // Flatten the repo results under the source name
             for(Map<LocalDate, Double> dateMap : repoTrends.values()) {
                 allTrends.put(sourceName, dateMap);
             }
@@ -135,17 +158,30 @@ public class AnalysisService {
     private void analyzeItem(Media item) {
         String textToAnalyze = item.getContent();
 
+        // If content is missing but we have a URL, try to fetch it
         String url = item.getUrl();
-        if (url != null && !url.isEmpty() && url.startsWith("http")) {
+        if ((textToAnalyze == null || textToAnalyze.isEmpty()) && url != null && url.startsWith("http")) {
+            System.out.print("      (Fetching URL content... ");
             String fullBody = fetchUrlContent(url);
-            if (!fullBody.isEmpty()) textToAnalyze = fullBody;
+            if (!fullBody.isEmpty()) {
+                textToAnalyze = fullBody;
+                System.out.println("Success)");
+            } else {
+                System.out.println("Failed)");
+            }
+        }
+
+        // Safety check if text is still empty
+        if (textToAnalyze == null || textToAnalyze.isEmpty()) {
+            System.out.println("      (Skipping AI: No text available)");
+            return;
         }
 
         try {
             double score = sentimentAnalyzer.analyzeScore(textToAnalyze);
             item.setSentiment(score);
         } catch (Exception e) {
-            System.err.println("Sentiment Error: " + e.getMessage());
+            System.err.println("      Sentiment Error: " + e.getMessage());
         }
 
         try {
@@ -154,7 +190,7 @@ public class AnalysisService {
                 item.setDamageType(cat);
             }
         } catch (Exception e) {
-            System.err.println("Classification Error: " + e.getMessage());
+            System.err.println("      Classification Error: " + e.getMessage());
         }
     }
 

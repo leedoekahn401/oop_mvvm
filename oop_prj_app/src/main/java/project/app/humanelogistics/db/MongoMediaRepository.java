@@ -57,9 +57,21 @@ public class MongoMediaRepository implements MediaRepository {
 
     @Override
     public List<Media> findByTopic(String topic) {
-        // Implementation kept for reference but should be avoided for Dashboard
         List<Media> items = new ArrayList<>();
-        // ... (existing logic) ...
+        // In "Analyze Only" mode, we fetch items that need analysis
+        // This usually means sentiment is 0.0 AND damageType is UNKNOWN or missing
+        Bson filter = Filters.and(
+                Filters.eq("topic", topic),
+                Filters.or(
+                        Filters.eq("sentiment", 0.0),
+                        Filters.eq("damageType", "UNKNOWN"),
+                        Filters.exists("damageType", false)
+                )
+        );
+
+        for (Document doc : collection.find(filter).limit(50)) { // Process in batches
+            items.add(mapDocumentToMedia(doc));
+        }
         return items;
     }
 
@@ -70,11 +82,6 @@ public class MongoMediaRepository implements MediaRepository {
 
     @Override
     public double getAverageSentiment(String topic) {
-        // Aggregation might fail if types are mixed (String vs Double).
-        // For robustness, we will fetch minimal data and calculate in Java if aggregation fails,
-        // OR we can use $toDouble in aggregation if Mongo version supports it (4.0+).
-        // Here, we'll stick to Java-side calculation for safety given the error.
-
         double total = 0;
         int count = 0;
 
@@ -95,10 +102,11 @@ public class MongoMediaRepository implements MediaRepository {
     public Map<String, Integer> getDamageDistribution(String topic) {
         Map<String, Integer> distribution = new HashMap<>();
 
+        // Aggregation: Group by damageType and count
         AggregateIterable<Document> results = collection.aggregate(Arrays.asList(
                 Aggregates.match(Filters.and(
                         Filters.eq("topic", topic),
-                        Filters.ne("damageType", "UNKNOWN"),
+                        Filters.ne("damageType", "UNKNOWN"), // Exclude UNKNOWN from charts
                         Filters.ne("damageType", null)
                 )),
                 Aggregates.group("$damageType", Accumulators.sum("count", 1))
@@ -106,11 +114,14 @@ public class MongoMediaRepository implements MediaRepository {
 
         for (Document doc : results) {
             String typeCode = doc.getString("_id");
+            if (typeCode == null) continue;
+
             try {
                 String displayName = DamageCategory.valueOf(typeCode).getDisplayName();
                 distribution.put(displayName, doc.getInteger("count"));
-            } catch (Exception e) {
-                distribution.put(typeCode, doc.getInteger("count"));
+            } catch (IllegalArgumentException e) {
+                // If DB has a value not in Enum (e.g. older data), treat as Other
+                distribution.merge("Other", doc.getInteger("count"), Integer::sum);
             }
         }
         return distribution;
@@ -125,10 +136,8 @@ public class MongoMediaRepository implements MediaRepository {
                 Projections.excludeId()
         );
 
-        FindIterable<Document> docs = collection.find(Filters.and(
-                Filters.eq("topic", topic)
-                // Removed sentiment check in filter to handle parsing manually
-        )).projection(projection);
+        FindIterable<Document> docs = collection.find(Filters.eq("topic", topic))
+                .projection(projection);
 
         for (Document doc : docs) {
             Date date = doc.getDate("timestamp");
@@ -136,8 +145,8 @@ public class MongoMediaRepository implements MediaRepository {
 
             LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             String type = doc.getString("type");
+            if (type == null) type = "unknown";
 
-            // FIX: Use safe getter
             double sentiment = getSafeDouble(doc, "sentiment");
             if (sentiment == 0.0) continue;
 
@@ -154,7 +163,8 @@ public class MongoMediaRepository implements MediaRepository {
         return trends;
     }
 
-    // --- HELPER TO FIX CLASS CAST EXCEPTION ---
+    // --- HELPER METHODS ---
+
     private double getSafeDouble(Document doc, String key) {
         Object val = doc.get(key);
         if (val == null) return 0.0;
@@ -169,5 +179,29 @@ public class MongoMediaRepository implements MediaRepository {
             }
         }
         return 0.0;
+    }
+
+    private Media mapDocumentToMedia(Document doc) {
+        String topic = doc.getString("topic");
+        String content = doc.getString("content");
+        String url = doc.getString("url");
+        Date timestamp = doc.getDate("timestamp");
+        double sentiment = getSafeDouble(doc, "sentiment");
+
+        String dmgStr = doc.getString("damageType");
+        DamageCategory damage = DamageCategory.fromString(dmgStr);
+
+        String type = doc.getString("type");
+
+        Media media;
+        if ("news".equalsIgnoreCase(type)) {
+            String source = doc.getString("source");
+            media = new News(topic, content, source, url, timestamp, sentiment);
+        } else {
+            // Assuming SocialPost has a compatible constructor
+            media = new SocialPost(topic, content, url, timestamp, null, sentiment);
+        }
+        media.setDamageType(damage);
+        return media;
     }
 }
