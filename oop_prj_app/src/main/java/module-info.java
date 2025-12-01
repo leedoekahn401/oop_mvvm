@@ -27,4 +27,8 @@ module project.app.humanelogistics {
 
     exports project.app.humanelogistics.db;
     opens project.app.humanelogistics.db to javafx.fxml;
+
+    // NEW: Export the ViewModel package
+    exports project.app.humanelogistics.viewmodel;
+    opens project.app.humanelogistics.viewmodel to javafx.fxml;
 }

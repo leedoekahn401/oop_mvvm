@@ -1,4 +1,4 @@
-package project.app.humanelogistics.util;
+package project.app.humanelogistics.utils;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;

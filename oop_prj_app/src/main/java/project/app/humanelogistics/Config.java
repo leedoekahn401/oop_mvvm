@@ -31,7 +31,7 @@ public class Config {
 
         if (key == null || key.isEmpty()) {
             System.err.println("CRITICAL: No API Key found in .env or System Variables.");
-            return ""; // Return empty to prevent null pointer, but API calls will fail
+            return "";
         }
         return key;
     }
