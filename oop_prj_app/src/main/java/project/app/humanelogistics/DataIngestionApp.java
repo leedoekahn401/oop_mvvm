@@ -5,10 +5,8 @@ import project.app.humanelogistics.db.MongoMediaRepository;
 import project.app.humanelogistics.preprocessing.GeminiDamageClassifier;
 import project.app.humanelogistics.preprocessing.GoogleNewsCollector;
 import project.app.humanelogistics.preprocessing.SentimentGrade;
-import project.app.humanelogistics.service.AnalysisService;
+import project.app.humanelogistics.service.*;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
 public class DataIngestionApp {
@@ -18,70 +16,67 @@ public class DataIngestionApp {
         System.out.println("   HUMANE LOGISTICS - DATA INGESTION TOOL");
         System.out.println("==========================================");
 
-        // 1. Setup Dependencies
+        // === DEPENDENCY SETUP (Manual DI) ===
         String dbConn = Config.getDbConnectionString();
-        MediaRepository repo = new MongoMediaRepository(dbConn, "storm_data", "news");
+        MediaRepository repository = new MongoMediaRepository(dbConn, "storm_data", "news");
 
-        // 2. Initialize BOTH AI Models
-        SentimentGrade sentimentAnalyzer = new SentimentGrade();
+        // Create services
+        SentimentAnalyzer sentimentAnalyzer = new SentimentGrade();
         GeminiDamageClassifier damageClassifier = new GeminiDamageClassifier();
+        ContentFetchService contentFetcher = new ContentFetchService();
 
-        AnalysisService service = new AnalysisService(sentimentAnalyzer, damageClassifier);
-        service.addRepository("News", repo);
+        ContentEnrichmentService enrichmentService = new ContentEnrichmentService(
+                sentimentAnalyzer, damageClassifier, contentFetcher
+        );
 
+        DataIngestionService ingestionService = new DataIngestionService(repository);
+
+        AnalysisOrchestrator orchestrator = new AnalysisOrchestrator(
+                ingestionService, enrichmentService, repository
+        );
+
+        // Register collectors
+        orchestrator.registerCollector(new GoogleNewsCollector());
+
+        // === USER INPUT ===
         Scanner scanner = new Scanner(System.in);
 
-        // 3. CONFIGURATION INPUTS
-        System.out.println("--- Configuration ---");
-
         System.out.print("Enter Search Topic (default: Typhoon Yagi): ");
-        String topicInput = scanner.nextLine().trim();
-        String topic = topicInput.isEmpty() ? "Typhoon Yagi" : topicInput;
+        String topic = scanner.nextLine().trim();
+        if (topic.isEmpty()) topic = "Typhoon Yagi";
 
-        LocalDate today = LocalDate.now();
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("M/d/yyyy");
-        String defaultStart = "9/4/2024";
-        String defaultEnd = today.format(fmt);
+        System.out.print("Enter Start Date [M/d/yyyy] (default: 9/4/2024): ");
+        String startDate = scanner.nextLine().trim();
+        if (startDate.isEmpty()) startDate = "9/4/2024";
 
-        System.out.print("Enter Start Date [M/d/yyyy] (default: " + defaultStart + "): ");
-        String startInput = scanner.nextLine().trim();
-        String startDate = startInput.isEmpty() ? defaultStart : startInput;
+        System.out.print("Enter End Date [M/d/yyyy] (default: 11/30/2024): ");
+        String endDate = scanner.nextLine().trim();
+        if (endDate.isEmpty()) endDate = "11/30/2024";
 
-        System.out.print("Enter End Date [M/d/yyyy] (default: " + defaultEnd + "): ");
-        String endInput = scanner.nextLine().trim();
-        String endDate = endInput.isEmpty() ? defaultEnd : endInput;
-
-        System.out.println("\nUsing Topic: " + topic);
-        System.out.println("Date Range:  " + startDate + " -> " + endDate);
-
-        // 4. Interactive Menu
         System.out.println("\n--- Select Mode ---");
-        System.out.println("   [1] Search Only  (Collect data, No AI)");
-        System.out.println("   [2] Search + Analyze (Full Cycle)");
-        System.out.println("   [3] Analyze Only (Process existing DB items)");
+        System.out.println("   [1] Search Only");
+        System.out.println("   [2] Search + Analyze");
+        System.out.println("   [3] Analyze Existing Data");
         System.out.print("Enter choice: ");
 
         String choice = scanner.nextLine().trim();
 
-        // 5. Execution Logic
-        if (choice.equals("1")) {
-            System.out.println("\n>>> STARTING SEARCH ONLY <<<");
-            service.clearCollectors();
-            service.registerCollectors(new GoogleNewsCollector());
-            service.processNewData(topic, startDate, endDate, false);
-        }
-        else if (choice.equals("2")) {
-            System.out.println("\n>>> STARTING FULL ANALYSIS <<<");
-            service.clearCollectors();
-            service.registerCollectors(new GoogleNewsCollector());
-            service.processNewData(topic, startDate, endDate, true);
-        }
-        else if (choice.equals("3")) {
-            System.out.println("\n>>> STARTING ANALYSIS ONLY (Existing Data) <<<");
-            service.processExistingData(topic);
-        }
-        else {
-            System.out.println("Invalid choice. Exiting.");
+        // === EXECUTION ===
+        switch (choice) {
+            case "1":
+                System.out.println("\n>>> SEARCH ONLY <<<");
+                orchestrator.processNewData(topic, startDate, endDate, false);
+                break;
+            case "2":
+                System.out.println("\n>>> FULL ANALYSIS <<<");
+                orchestrator.processNewData(topic, startDate, endDate, true);
+                break;
+            case "3":
+                System.out.println("\n>>> ANALYZE EXISTING DATA <<<");
+                orchestrator.processExistingData(topic);
+                break;
+            default:
+                System.out.println("Invalid choice. Exiting.");
         }
 
         System.out.println("\n==========================================");

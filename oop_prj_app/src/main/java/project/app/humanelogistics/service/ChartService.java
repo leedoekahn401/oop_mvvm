@@ -13,7 +13,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.DefaultPieDataset; // Needed for Pie Chart
+import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.data.time.TimeSeriesCollection;
 
 import java.awt.*;
@@ -32,23 +32,28 @@ public class ChartService {
             new Color(231, 76, 60)    // Red
     };
 
+    // --- UPDATED RESOLUTION SETTINGS ---
+    private static final int CHART_WIDTH = 1600;
+    private static final int CHART_HEIGHT = 1000;
+
     public File generateAndSaveChart(String title, String xAxis, String yAxis, TimeSeriesCollection dataset, String filepath) throws IOException {
         JFreeChart chart = ChartFactory.createTimeSeriesChart(
                 title, xAxis, yAxis,
                 dataset, true, true, false
         );
 
-        chart.setBackgroundPaint(Color.WHITE);
+        // Apply visual improvements
+        applyTheme(chart);
+
         XYPlot plot = (XYPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
         plot.setDomainGridlinePaint(Color.LIGHT_GRAY);
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
 
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
-
         for (int i = 0; i < dataset.getSeriesCount(); i++) {
             renderer.setSeriesPaint(i, SERIES_COLORS[i % SERIES_COLORS.length]);
-            renderer.setSeriesStroke(i, new BasicStroke(2.5f));
+            // Thicker lines for high resolution
+            renderer.setSeriesStroke(i, new BasicStroke(5.0f));
             renderer.setSeriesShapesVisible(i, true);
             renderer.setSeriesShapesFilled(i, true);
         }
@@ -57,8 +62,14 @@ public class ChartService {
         domainAxis.setDateFormatOverride(new SimpleDateFormat("MMM dd"));
         domainAxis.setTickUnit(new DateTickUnit(DateTickUnitType.DAY, 1));
 
+        // Font scaling for axis
+        domainAxis.setTickLabelFont(new Font("SansSerif", Font.PLAIN, 18));
+        domainAxis.setLabelFont(new Font("SansSerif", Font.BOLD, 20));
+        plot.getRangeAxis().setTickLabelFont(new Font("SansSerif", Font.PLAIN, 18));
+        plot.getRangeAxis().setLabelFont(new Font("SansSerif", Font.BOLD, 20));
+
         File file = new File(filepath);
-        ChartUtils.saveChartAsPNG(file, chart, 800, 500);
+        ChartUtils.saveChartAsPNG(file, chart, CHART_WIDTH, CHART_HEIGHT);
         return file;
     }
 
@@ -68,24 +79,28 @@ public class ChartService {
                 dataset, PlotOrientation.VERTICAL, true, true, false
         );
 
-        chart.setBackgroundPaint(Color.WHITE);
+        applyTheme(chart);
+
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
         plot.setDomainGridlinePaint(Color.LIGHT_GRAY);
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
+
+        // Font scaling for axis
+        plot.getDomainAxis().setTickLabelFont(new Font("SansSerif", Font.PLAIN, 18));
+        plot.getDomainAxis().setLabelFont(new Font("SansSerif", Font.BOLD, 20));
+        plot.getRangeAxis().setTickLabelFont(new Font("SansSerif", Font.PLAIN, 18));
+        plot.getRangeAxis().setLabelFont(new Font("SansSerif", Font.BOLD, 20));
 
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
         renderer.setSeriesPaint(0, new Color(52, 152, 219)); // Blue bars
         renderer.setDrawBarOutline(false);
 
         File file = new File(filepath);
-        ChartUtils.saveChartAsPNG(file, chart, 800, 500);
+        ChartUtils.saveChartAsPNG(file, chart, CHART_WIDTH, CHART_HEIGHT);
         return file;
     }
 
-    // NEW METHOD: Pie Chart Generation
     public File generatePieChart(String title, DefaultCategoryDataset categoryDataset, String filepath) throws IOException {
-        // Convert CategoryDataset to PieDataset (JFreeChart uses different datasets for Pie)
         DefaultPieDataset pieDataset = new DefaultPieDataset();
         for (int i = 0; i < categoryDataset.getColumnCount(); i++) {
             Comparable key = categoryDataset.getColumnKey(i);
@@ -101,22 +116,37 @@ public class ChartService {
                 false // urls
         );
 
-        chart.setBackgroundPaint(Color.WHITE);
+        applyTheme(chart);
+
         PiePlot plot = (PiePlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
-        plot.setLabelFont(new Font("SansSerif", Font.PLAIN, 12));
+        plot.setLabelFont(new Font("SansSerif", Font.BOLD, 18)); // Larger labels
         plot.setNoDataMessage("No data available");
         plot.setCircular(true);
         plot.setLabelGap(0.02);
+        plot.setBackgroundPaint(Color.WHITE);
 
-        // Use custom colors if possible, or default defaults
-        // Simple way to cycle colors for sections
         for (int i = 0; i < pieDataset.getItemCount(); i++) {
             plot.setSectionPaint(pieDataset.getKey(i), SERIES_COLORS[i % SERIES_COLORS.length]);
         }
 
         File file = new File(filepath);
-        ChartUtils.saveChartAsPNG(file, chart, 800, 500);
+        ChartUtils.saveChartAsPNG(file, chart, CHART_WIDTH, CHART_HEIGHT);
         return file;
+    }
+
+
+    private void applyTheme(JFreeChart chart) {
+        chart.setAntiAlias(true);
+        chart.setTextAntiAlias(true);
+
+        chart.setBackgroundPaint(Color.WHITE);
+        if (chart.getPlot() != null) {
+            chart.getPlot().setBackgroundPaint(Color.WHITE);
+        }
+
+        chart.getTitle().setFont(new Font("SansSerif", Font.BOLD, 36));
+        if (chart.getLegend() != null) {
+            chart.getLegend().setItemFont(new Font("SansSerif", Font.PLAIN, 22));
+        }
     }
 }

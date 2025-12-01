@@ -51,9 +51,8 @@
                         <!-- CARD 1: TOTAL POSTS -->
                         <VBox styleClass="card">
                             <Label styleClass="card-title" text="Total Posts" />
-                            <Label fx:id="lblTotalPosts" styleClass="card-value" text="Loading..." />
+                            <Label fx:id="lblTotalPosts" styleClass="card-value" text="loading..." />
                         </VBox>
-
                         <!-- CARD 2: SENTIMENT SCORE -->
                         <VBox styleClass="card">
                             <Label styleClass="card-title" text="Avg. Sentiment Score" />
@@ -64,7 +63,7 @@
                         <!-- CARD 3: TOP DAMAGE TYPE (The "Rightest" Column) -->
                         <VBox styleClass="card">
                             <Label styleClass="card-title" text="Top Damage Reported" />
-                            <Label fx:id="lblTopDamage" styleClass="card-value" text="-" style="-fx-font-size: 20px;"/>
+                            <Label fx:id="lblTopDamage" styleClass="card-value" text="loading..." style="-fx-font-size: 20px;"/>
                             <Label fx:id="lblTopDamageCount" styleClass="card-subtitle" text="0 reports" />
                         </VBox>
                     </TilePane>

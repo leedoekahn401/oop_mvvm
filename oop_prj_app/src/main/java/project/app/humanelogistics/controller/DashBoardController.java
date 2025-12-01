@@ -132,19 +132,16 @@ public class DashBoardController {
         homeButton.setOnAction(e -> {
             updateActiveButton(homeButton);
             showDefault();
-            // Refresh stats to ensure numbers are up to date
             viewModel.loadDashboardStats();
         });
 
         sentimentButton.setOnAction(e -> {
             updateActiveButton(sentimentButton);
-            // Trigger generation in ViewModel
             viewModel.generateSentimentChart(CHART_FILE_PATH);
         });
 
         inventoryButton.setOnAction(e -> {
             updateActiveButton(inventoryButton);
-            // Trigger generation in ViewModel
             viewModel.generateDamageCharts(DAMAGE_PIE_PATH, DAMAGE_BAR_PATH);
         });
 

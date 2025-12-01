@@ -5,12 +5,11 @@ import java.util.Date;
 public abstract class Media {
     protected String topic;
     protected String content;
-    protected String url; // MOVED HERE
+    protected String url;
     protected Date timestamp;
     protected double sentiment;
     protected DamageCategory damageType = DamageCategory.UNKNOWN;
 
-    // Updated Constructor
     public Media(String topic, String content, String url, Date timestamp, double sentiment) {
         this.topic = topic;
         this.content = content;
@@ -19,10 +18,25 @@ public abstract class Media {
         this.sentiment = sentiment;
     }
 
-    // Common Getters and Setters
+    // BEHAVIOR: Domain logic lives in the model!
+    public boolean needsAnalysis() {
+        return sentiment == 0.0 ||
+                damageType == null ||
+                damageType == DamageCategory.UNKNOWN;
+    }
+
+    public boolean hasContent() {
+        return content != null && !content.trim().isEmpty();
+    }
+
+    public boolean hasValidUrl() {
+        return url != null && url.startsWith("http");
+    }
+
+    // Getters and Setters
     public String getTopic() { return topic; }
     public String getContent() { return content; }
-    public String getUrl() { return url; } // NEW GETTER
+    public String getUrl() { return url; }
     public Date getTimestamp() { return timestamp; }
     public double getSentiment() { return sentiment; }
     public void setSentiment(double sentiment) { this.sentiment = sentiment; }
