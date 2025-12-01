@@ -1,0 +1,115 @@
+/* GLOBAL FONTS & COLORS */
+.root {
+    -fx-font-family: "Segoe UI", "Roboto", "Helvetica", sans-serif;
+    -fx-background-color: #F4F7F6; /* Softer light gray */
+}
+
+/* SIDEBAR STYLING */
+.sidebar {
+    -fx-background-color: #2C3E50;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 2, 0);
+}
+
+.sidebar-header {
+    -fx-border-color: transparent transparent rgba(255,255,255,0.1) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 30 20;
+}
+
+.app-title {
+    -fx-text-fill: #ECF0F1;
+    -fx-font-size: 18px;
+    -fx-font-weight: 800; /* Extra Bold */
+    -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.3), 0, 0, 0, 1);
+}
+
+/* NAVIGATION BUTTONS */
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #BDC3C7;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 14 25;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+    -fx-background-radius: 0 25 25 0; /* Rounded on right side only */
+    -fx-border-width: 0 0 0 4;
+    -fx-border-color: transparent;
+}
+
+.nav-button:hover {
+    -fx-background-color: rgba(255,255,255,0.05);
+    -fx-text-fill: white;
+}
+
+.nav-button.active {
+    -fx-background-color: rgba(230, 126, 34, 0.15); /* Orange tint */
+    -fx-text-fill: #E67E22;
+    -fx-font-weight: bold;
+    -fx-border-color: #E67E22; /* Orange left border indicator */
+}
+
+/* SVG ICON STYLING */
+.nav-icon {
+    -fx-fill: #BDC3C7;
+}
+.nav-button:hover .nav-icon {
+    -fx-fill: white;
+}
+.nav-button.active .nav-icon {
+    -fx-fill: #E67E22;
+}
+
+/* CONTENT AREA */
+.main-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 10;
+}
+.main-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.section-header {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-padding: 0 0 10 0;
+}
+
+/* CARDS (DASHBOARD & DEVELOPERS) */
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 4);
+    -fx-padding: 25;
+    -fx-min-width: 240;
+    -fx-cursor: default;
+}
+
+/* Hover effect for cards to make them pop */
+.card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 15, 0, 0, 8);
+    -fx-translate-y: -2; /* Moves up slightly */
+}
+
+.card-title {
+    -fx-font-size: 14px;
+    -fx-text-fill: #95A5A6;
+    -fx-font-weight: bold;
+    -fx-text-transform: uppercase;
+    -fx-letter-spacing: 1px;
+}
+
+.card-value {
+    -fx-font-size: 36px;
+    -fx-font-weight: 900;
+    -fx-text-fill: #2C3E50;
+}
+
+.card-subtitle {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10;
+    -fx-background-radius: 15;
+    -fx-background-color: #ECF0F1; /* Default gray pill */
+    -fx-text-fill: #7F8C8D;
+}

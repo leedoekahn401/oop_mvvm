@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<StackPane fx:id="rootPane" prefHeight="874.0" prefWidth="1211.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="project.app.humanelogistics.controller.DashBoardController">
+
+    <BorderPane>
+        <!-- SIDEBAR -->
+        <left>
+            <VBox fx:id="leftBox" prefWidth="240.0" styleClass="sidebar">
+                <HBox alignment="CENTER_LEFT" spacing="15" styleClass="sidebar-header">
+                    <padding><Insets bottom="30" left="20" right="20" top="30" /></padding>
+                    <ImageView fx:id="imgLogo" fitHeight="32" fitWidth="32" preserveRatio="true" />
+                    <Label styleClass="app-title" text="HumaneLogistics" />
+                </HBox>
+
+                <VBox spacing="8" VBox.vgrow="ALWAYS">
+                    <padding><Insets left="15" right="15" top="10" /></padding>
+                    <Button fx:id="homeButton" maxWidth="Infinity" styleClass="nav-button, active" text="Dashboard" />
+                    <Button fx:id="sentimentButton" maxWidth="Infinity" styleClass="nav-button" text="Sentiment Analysis" />
+                    <Button fx:id="inventoryButton" maxWidth="Infinity" styleClass="nav-button" text="Damage Analysis" />
+                </VBox>
+
+                <VBox spacing="8">
+                    <padding><Insets bottom="30" left="15" right="15" /></padding>
+                    <Button fx:id="informationButton" maxWidth="Infinity" styleClass="nav-button-secondary" text="Help &amp; Info" />
+                </VBox>
+            </VBox>
+        </left>
+
+        <!-- MAIN CONTENT -->
+        <center>
+            <ScrollPane fitToWidth="true" styleClass="main-scroll">
+                <VBox fx:id="mainContent" spacing="25">
+                    <padding><Insets bottom="40" left="40" right="40" top="40" /></padding>
+
+                    <Label styleClass="section-header" text="Dashboard Overview" />
+
+                    <TilePane alignment="CENTER_LEFT" hgap="25" prefColumns="3" vgap="25">
+                        <!-- CARD 1: TOTAL POSTS -->
+                        <VBox styleClass="card">
+                            <Label styleClass="card-title" text="Total Posts" />
+                            <Label fx:id="lblTotalPosts" styleClass="card-value" text="Loading..." />
+                        </VBox>
+
+                        <!-- CARD 2: SENTIMENT SCORE -->
+                        <VBox styleClass="card">
+                            <Label styleClass="card-title" text="Avg. Sentiment Score" />
+                            <Label fx:id="lblSentimentScore" styleClass="card-value" text="0.0" />
+                            <Label fx:id="lblSentimentLabel" styleClass="card-subtitle" text="Neutral" />
+                        </VBox>
+
+                        <!-- CARD 3: TOP DAMAGE TYPE (The "Rightest" Column) -->
+                        <VBox styleClass="card">
+                            <Label styleClass="card-title" text="Top Damage Reported" />
+                            <Label fx:id="lblTopDamage" styleClass="card-value" text="-" style="-fx-font-size: 20px;"/>
+                            <Label fx:id="lblTopDamageCount" styleClass="card-subtitle" text="0 reports" />
+                        </VBox>
+                    </TilePane>
+                </VBox>
+            </ScrollPane>
+        </center>
+    </BorderPane>
+</StackPane>
